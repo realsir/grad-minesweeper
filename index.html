@@ -1,36 +1,41 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>./ GRAD MINESWEEPER</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-
     :root{
-      --bg: #070A0F;
-      --panel: rgba(255,255,255,0.06);
-      --panel2: rgba(255,255,255,0.09);
-      --text: rgba(255,255,255,0.92);
-      --muted: rgba(255,255,255,0.68);
-      --gridline: rgba(255,255,255,0.12);
+      --bg0:#fff1f6;
+      --bg1:#ffe3ee;
+      --bg2:#ffd2e6;
 
-      --accent: #7CFFB2;
-      --accent2:#72A7FF;
-      --danger: #FF5C7A;
+      --ink: rgba(35,16,26,.92);
 
-      --cell: rgba(255,255,255,0.05);
-      --cellHover: rgba(124,255,178,0.10);
-      --cellOpen: rgba(255,255,255,0.10);
+      --pink:#ff5da2;
+      --violet:#7b6cff;
 
-      --shadow: 0 14px 40px rgba(0,0,0,.45);
+      --tileClosed:#ececef;
+      --tileClosedStroke: rgba(60,25,45,.10);
+
+      --tileOpen:#e6f9f1;
+      --tileOpenStroke: rgba(20,90,70,.14);
+
+      --flagBg: rgba(123,108,255,0.16);
+      --mineBg: rgba(255,93,162,0.22);
+
+      --shadow: 0 18px 70px rgba(40,10,25,.20);
       --radius: 18px;
 
       --size: 10;
       --mines: 14;
-
-      --gapPx: 8px;
-      --padPx: 12px;
+      --gap: 0px;
+      --pad: 12px;
     }
 
     *{ box-sizing:border-box; }
@@ -38,13 +43,13 @@
 
     body{
       margin:0;
-      font-family: Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color:var(--text);
+      font-family: Nunito, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ink);
       background:
-        radial-gradient(1200px 700px at 15% 10%, rgba(114,167,255,0.18), transparent 60%),
-        radial-gradient(900px 600px at 85% 30%, rgba(124,255,178,0.14), transparent 55%),
-        radial-gradient(900px 700px at 40% 90%, rgba(255,92,122,0.10), transparent 60%),
-        linear-gradient(180deg, #05070C 0%, #070A0F 50%, #04060B 100%);
+        radial-gradient(1100px 700px at 15% 12%, rgba(255,93,162,0.18), transparent 60%),
+        radial-gradient(900px 560px at 85% 30%, rgba(123,108,255,0.16), transparent 58%),
+        radial-gradient(900px 700px at 40% 90%, rgba(255,143,177,0.20), transparent 60%),
+        linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 55%, var(--bg2) 100%);
       overflow:hidden;
     }
 
@@ -54,15 +59,22 @@
       align-items:center;
       justify-content:center;
       padding: 14px;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .45s ease, transform .45s ease;
+    }
+    .wrap.ready{
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .app{
-      width:min(980px, 100%);
+      width: min(1040px, 100%);
       height: 100%;
       display:grid;
       grid-template-rows: auto minmax(0, 1fr);
       gap: 12px;
-      min-height: 0;
+      min-height:0;
     }
 
     header{
@@ -70,47 +82,31 @@
       align-items:flex-end;
       justify-content:space-between;
       gap:12px;
-      min-height: 0;
-    }
-
-    .brand{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      min-width: 0;
     }
 
     .title{
-      font-size: clamp(18px, 3.2vw, 30px);
+      margin:0;
+      font-size: clamp(18px, 3.2vw, 32px);
       line-height:1.05;
-      letter-spacing: -0.02em;
-      margin:0;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .subtitle{
-      margin:0;
-      color:var(--muted);
-      font-size: 12px;
+      letter-spacing:-0.02em;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
 
     .panel{
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
-      border: 1px solid var(--gridline);
+      background: linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.34));
+      border: 1px solid rgba(255,255,255,0.55);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px) saturate(140%);
+      -webkit-backdrop-filter: blur(12px) saturate(140%);
       overflow:hidden;
-
-      min-height: 0;
-
       display:flex;
       flex-direction:column;
+      min-height:0;
+      position:relative;
+      isolation:isolate;
     }
 
     .topbar{
@@ -118,470 +114,910 @@
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      padding:10px 10px;
-      background: rgba(255,255,255,0.03);
-      border-bottom:1px solid var(--gridline);
+      padding:10px;
+      background: rgba(255,255,255,0.30);
+      border-bottom: 1px solid rgba(60,25,45,0.10);
       flex-wrap:wrap;
-      flex: 0 0 auto;
     }
 
-    .stats{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
+    .stats{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 
-    .stat{
+    .pill{
       display:flex;
       align-items:center;
       gap:8px;
-      padding:7px 9px;
-      border-radius: 12px;
-      background: var(--panel2);
-      border: 1px solid rgba(255,255,255,0.10);
-      color: rgba(255,255,255,0.82);
+      padding:8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.50);
+      border: 1px solid rgba(60,25,45,0.10);
+      color: rgba(35,16,26,0.82);
       font-size: 12px;
       user-select:none;
     }
-    .stat b{ font-weight:700; color: var(--text); }
+    .pill b{ font-weight:800; color: var(--ink); }
 
-    .actions{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
+    .stateDot{
+      width:10px;
+      height:10px;
+      border-radius:99px;
+      background: rgba(35,16,26,.26);
+      box-shadow: 0 0 0 2px rgba(35,16,26,.08), 0 0 18px rgba(35,16,26,.10);
+      transition: background .2s ease, box-shadow .2s ease;
     }
+    .stateDot.playing{ background: rgba(255,93,162,.95); box-shadow: 0 0 0 2px rgba(255,93,162,.18), 0 0 22px rgba(255,93,162,.22); }
+    .stateDot.win{ background: rgba(123,108,255,.95); box-shadow: 0 0 0 2px rgba(123,108,255,.18), 0 0 24px rgba(123,108,255,.22); }
+    .stateDot.lose{ background: rgba(255,143,177,.95); box-shadow: 0 0 0 2px rgba(255,143,177,.18), 0 0 24px rgba(255,143,177,.22); }
 
-    button{
+    .actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+
+    button, select{
       font: inherit;
-      color: var(--text);
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 12px;
-      padding: 8px 10px;
+      color: var(--ink);
+      background: rgba(255,255,255,0.55);
+      border: 1px solid rgba(60,25,45,0.12);
+      border-radius: 999px;
+      padding: 8px 12px;
       cursor:pointer;
-      transition: transform .08s ease, background .2s ease, border-color .2s ease;
       user-select:none;
       font-size: 12px;
+      transition: transform .08s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+      outline:none;
     }
-    button:hover{ background: rgba(124,255,178,0.10); border-color: rgba(124,255,178,0.35); }
+    button:hover, select:hover{
+      background: rgba(255,255,255,0.72);
+      border-color: rgba(255,93,162,0.28);
+      box-shadow: 0 0 0 4px rgba(255,93,162,0.10);
+    }
     button:active{ transform: translateY(1px); }
+
+    select{
+      cursor:pointer;
+      padding-right: 34px;
+      appearance:none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, rgba(35,16,26,.70) 50%),
+        linear-gradient(135deg, rgba(35,16,26,.70) 50%, transparent 50%);
+      background-position:
+        calc(100% - 18px) 50%,
+        calc(100% - 12px) 50%;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat:no-repeat;
+    }
 
     .gridWrap{
       flex: 1 1 auto;
-      min-height: 0;
-      width: 100%;
+      min-height:0;
       padding: 12px;
-      overflow: hidden;
-
+      overflow:hidden;
       display:flex;
-      align-items: stretch;
-      justify-content: stretch;
     }
 
     .grid{
       width: 100%;
       height: 100%;
-      padding: var(--padPx);
-      gap: var(--gapPx);
-
+      padding: var(--pad);
+      gap: var(--gap);
       display:grid;
-
       grid-template-columns: repeat(var(--size), minmax(0, 1fr));
       grid-template-rows: repeat(var(--size), minmax(0, 1fr));
-
       border-radius: 16px;
-      background: rgba(0,0,0,0.25);
-      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.22);
+      border: 1px solid rgba(60,25,45,0.10);
       position:relative;
+      overflow:hidden;
+      transform: translateZ(0);
     }
 
-    .grid::before{
-      content:"./././././././././././././././././././././././././././././././";
-      position:absolute;
-      inset:10px;
-      color: rgba(255,255,255,0.06);
-      font-size: 12px;
-      letter-spacing: 0.45em;
-      line-height: 2.1em;
-      pointer-events:none;
-      white-space: pre-wrap;
-      opacity: 0.9;
+    .grid.shake{ animation: shake .42s cubic-bezier(.2,.9,.2,1); }
+    @keyframes shake{
+      0%{ transform: translate3d(0,0,0); }
+      25%{ transform: translate3d(8px,-3px,0); }
+      50%{ transform: translate3d(-7px,4px,0); }
+      75%{ transform: translate3d(5px,3px,0); }
+      100%{ transform: translate3d(0,0,0); }
     }
 
     .cell{
-      width: 100%;
-      height: 100%;
-      border-radius: 12px;
-      background: var(--cell);
-      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 0;
+      background: var(--tileClosed);
+      border: 0;
+      box-shadow: inset 0 0 0 1px var(--tileClosedStroke);
       display:flex;
       align-items:center;
       justify-content:center;
-      font-weight:700;
+      font-weight: 800;
       font-size: 15px;
       position:relative;
       cursor:pointer;
-      transition: background .18s ease, transform .08s ease, border-color .18s ease;
       user-select:none;
       z-index:1;
+      transition: background .15s ease, transform .08s ease, box-shadow .15s ease;
+      overflow:hidden;
+      transform: translateZ(0);
+      color: var(--ink);
     }
+
     .cell:hover{
-      background: var(--cellHover);
-      border-color: rgba(124,255,178,0.30);
+      background: color-mix(in srgb, var(--tileClosed) 78%, var(--pink) 22%);
+      box-shadow: inset 0 0 0 1px rgba(255,93,162,0.26);
       transform: translateY(-1px);
     }
 
-    .cell[data-state="closed"]::after{
-      content:"./";
-      color: rgba(255,255,255,0.60);
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      transform: translateY(1px);
+    .ripple{
+      position:absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      pointer-events:none;
+      left: var(--rx);
+      top: var(--ry);
+      transform: translate(-50%,-50%) scale(0);
+      opacity:.50;
+      background: radial-gradient(circle, rgba(255,255,255,.90) 0%, rgba(255,93,162,.55) 35%, rgba(255,93,162,0) 70%);
+      animation: ripple .45s ease-out;
+      mix-blend-mode: multiply;
+    }
+    @keyframes ripple{ to{ transform: translate(-50%,-50%) scale(12); opacity:0; } }
+
+    .cell[data-state="open"]{
+      cursor:default;
+      background: var(--tileOpen);
+      box-shadow: inset 0 0 0 1px var(--tileOpenStroke);
+      transform:none;
     }
 
     .cell[data-state="flag"]{
-      border-color: rgba(114,167,255,0.40);
-      background: rgba(114,167,255,0.10);
+      background: var(--flagBg);
+      box-shadow: inset 0 0 0 1px rgba(123,108,255,0.35);
     }
     .cell[data-state="flag"]::after{
-      content:"/\\";
-      color: rgba(114,167,255,0.95);
-      font-size: 14px;
-      letter-spacing: 0.08em;
+      content:"⚑";
+      color: rgba(123,108,255,0.95);
+      font-size: 16px;
+      transform: translateY(-1px);
     }
-
-    .cell[data-state="open"]{
-      background: var(--cellOpen);
-      border-color: rgba(255,255,255,0.16);
-      cursor:default;
-      transform:none;
-    }
-    .cell[data-state="open"]::after{ content:""; }
 
     .cell[data-state="mine"]{
-      background: rgba(255,92,122,0.12);
-      border-color: rgba(255,92,122,0.45);
+      background: var(--mineBg);
+      box-shadow: inset 0 0 0 1px rgba(255,93,162,0.48);
     }
     .cell[data-state="mine"]::after{
-      content:"*";
-      color: rgba(255,92,122,0.95);
+      content:"✹";
+      color: rgba(255,93,162,0.95);
       font-size: 18px;
+      transform: translateY(-1px);
     }
 
-    .n1{ color:#A6FFCB; } .n2{ color:#72A7FF; } .n3{ color:#FFB86B; }
-    .n4{ color:#D7A6FF; } .n5{ color:#FF5C7A; } .n6{ color:#5CFFE1; }
-    .n7{ color:#F2F2F2; } .n8{ color:#BDBDBD; }
+    .n1{ color:#2b7a5c; } .n2{ color:#2f5fbf; } .n3{ color:#b86a2e; }
+    .n4{ color:#6a3dbf; } .n5{ color:#c23262; } .n6{ color:#158a87; }
+    .n7{ color:#2b2b2b; } .n8{ color:#4a4a4a; }
 
-    @media (max-width:520px){
-      .subtitle{ display:none; }
-      .cell{ font-size: 14px; }
+    .cell.hl{
+      background: color-mix(in srgb, var(--tileOpen) 70%, var(--violet) 30%);
+      box-shadow: inset 0 0 0 1px rgba(123,108,255,0.22);
+    }
+    .cell.hl.safe{
+      background: color-mix(in srgb, var(--tileOpen) 74%, var(--pink) 26%);
+      box-shadow: inset 0 0 0 1px rgba(255,93,162,0.18);
+    }
+
+    .cell.flash{ animation: flash .22s ease-out; }
+    @keyframes flash{
+      from{
+        box-shadow:
+          inset 0 0 0 1px rgba(255,93,162,0.60),
+          0 0 0 6px rgba(255,93,162,0.10);
+        background: color-mix(in srgb, var(--tileOpen) 55%, var(--pink) 45%);
+      }
+      to{
+        box-shadow: inset 0 0 0 1px var(--tileOpenStroke);
+        background: var(--tileOpen);
+      }
+    }
+
+    .toast{
+      position:absolute;
+      left: 50%;
+      top: 78px;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.66);
+      border: 1px solid rgba(60,25,45,0.12);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 12px;
+      color: rgba(35,16,26,0.92);
+      box-shadow: 0 18px 60px rgba(40,10,25,.12);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .2s ease, transform .2s ease;
+      z-index:10;
+      white-space:nowrap;
+    }
+    .toast.show{ opacity:1; }
+
+    dialog{
+      border: 1px solid rgba(60,25,45,0.14);
+      border-radius: 16px;
+      padding: 0;
+      width: min(560px, calc(100% - 22px));
+      color: var(--ink);
+      background: rgba(255,255,255,0.78);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      box-shadow: 0 18px 80px rgba(40,10,25,.18);
+    }
+    dialog::backdrop{ background: rgba(60,25,45,.35); }
+
+    .dlgHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(60,25,45,0.10);
+    }
+    .dlgTitle{ margin:0; font-size: 14px; letter-spacing: .01em; font-weight: 800; }
+
+    .dlgBody{
+      padding: 12px 12px 14px 12px;
+      color: rgba(35,16,26,0.88);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .dlgBody p{ margin: 0; }
+
+    .xBtn{ border-radius: 999px; padding: 6px 10px; }
+
+    .intro{
+      position:fixed;
+      inset:0;
+      z-index:9999;
+      background:
+        radial-gradient(900px 700px at 20% 15%, rgba(255,93,162,0.22), transparent 60%),
+        radial-gradient(820px 560px at 80% 30%, rgba(123,108,255,0.16), transparent 58%),
+        linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 55%, var(--bg2) 100%);
+      opacity: 1;
+      overflow:hidden;
+    }
+
+    .intro.shake{
+      animation: introShake .65s cubic-bezier(.2,.9,.2,1);
+    }
+    @keyframes introShake{
+      0%{ transform: translate3d(0,0,0); }
+      15%{ transform: translate3d(10px,-6px,0); }
+      30%{ transform: translate3d(-11px,7px,0); }
+      45%{ transform: translate3d(8px,5px,0); }
+      60%{ transform: translate3d(-7px,-3px,0); }
+      100%{ transform: translate3d(0,0,0); }
+    }
+
+    .flashScreen{
+      position:absolute;
+      inset:0;
+      background: #fff;
+      opacity:0;
+      pointer-events:none;
+    }
+    .flashScreen.on{
+      animation: whiteFlash .55s ease-out forwards;
+    }
+    @keyframes whiteFlash{
+      0%{ opacity:0; }
+      30%{ opacity:1; }
+      100%{ opacity:0; }
+    }
+
+    .bomb{
+      position:absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.9), rgba(35,16,26,.55) 35%, rgba(35,16,26,.92) 70%);
+      box-shadow: 0 10px 30px rgba(40,10,25,.25);
+      transform: translate3d(var(--x), var(--y), 0) scale(0);
+      opacity: 0;
+      animation: bombIn .55s ease-out forwards;
+      will-change: transform, opacity;
+    }
+    .bomb::after{
+      content:"";
+      position:absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      right: -2px;
+      top: -2px;
+      background: linear-gradient(180deg, rgba(255,255,255,.90), rgba(255,255,255,.25));
+      transform: rotate(22deg);
+      opacity:.9;
+    }
+    @keyframes bombIn{
+      0%{ opacity:0; transform: translate3d(var(--x), var(--y), 0) scale(0.2); }
+      100%{ opacity:1; transform: translate3d(var(--x), var(--y), 0) scale(1); }
+    }
+
+    .blast{
+      position:absolute;
+      left: 50%;
+      top: 50%;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      transform: translate(-50%,-50%) scale(0);
+      opacity:0;
+      pointer-events:none;
+      background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,93,162,0.55) 35%, rgba(123,108,255,0.25) 55%, rgba(255,93,162,0) 75%);
+      mix-blend-mode: screen;
+      will-change: transform, opacity;
+    }
+    .blast.on{
+      animation: blast .75s cubic-bezier(.15,.9,.15,1) forwards;
+    }
+    @keyframes blast{
+      0%{ opacity:0; transform: translate(-50%,-50%) scale(0.2); }
+      15%{ opacity:1; }
+      100%{ opacity:0; transform: translate(-50%,-50%) scale(120); }
+    }
+
+    .intro.fadeOut{
+      transition: opacity .45s ease;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      button, select, .cell, .toast{ transition:none; }
+      .grid.shake{ animation:none; }
+      .ripple{ animation:none; }
+      .cell.flash{ animation:none; }
+      .intro, .bomb, .blast, .flashScreen{ animation:none; }
+      .intro{ display:none; }
+      .wrap{ opacity:1; transform:none; }
     }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js"></script>
 </head>
 
 <body>
-  <div class="wrap">
+  <div class="intro" id="intro">
+    <div class="blast" id="blast"></div>
+    <div class="flashScreen" id="flashScreen"></div>
+  </div>
+
+  <div class="wrap" id="wrap">
     <div class="app">
       <header>
-        <div class="brand">
-          <h1 class="title">./ GRAD MINESWEEPER</h1>
-          <p class="subtitle">Left click opens, right click flags.</p>
-        </div>
+        <h1 class="title">./ GRAD MINESWEEPER</h1>
       </header>
 
       <section class="panel">
         <div class="topbar">
           <div class="stats">
-            <div class="stat">Mines: <b id="minesTotal">0</b></div>
-            <div class="stat">Flags: <b id="flagsUsed">0</b></div>
-            <div class="stat">Time: <b id="time">0</b>s</div>
-            <div class="stat">State: <b id="state">Ready</b></div>
+            <div class="pill"><span class="stateDot" id="stateDot" aria-hidden="true"></span> <span>State:</span> <b id="state">Ready</b></div>
+            <div class="pill">Mines: <b id="minesTotal">0</b></div>
+            <div class="pill">Flags: <b id="flagsUsed">0</b></div>
+            <div class="pill">Time: <b id="time">0</b>s</div>
           </div>
+
           <div class="actions">
-            <button id="newBtn" title="New game">New</button>
-            <button id="easyBtn" title="10x10 / 14 mines">Default</button>
-            <button id="hardBtn" title="14x14 / 32 mines">Hard</button>
+            <button id="helpBtn" title="How to play">How to play</button>
+            <select id="mode" title="Difficulty">
+              <option value="10x10x14" selected>Default (10×10 / 14)</option>
+              <option value="14x14x32">Hard (14×14 / 32)</option>
+              <option value="18x18x58">Extreme (18×18 / 58)</option>
+            </select>
+            <button id="newBtn" title="New game (Space)">New</button>
           </div>
         </div>
 
         <div class="gridWrap">
-          <div id="grid" class="grid" aria-label="Minesweeper grid"></div>
+          <div id="grid" class="grid" aria-label="Minesweeper grid" role="grid"></div>
         </div>
+
+        <div class="toast" id="toast"></div>
+
+        <dialog id="helpDialog" aria-labelledby="helpTitle">
+          <div class="dlgHead">
+            <h2 class="dlgTitle" id="helpTitle">How to play</h2>
+            <button class="xBtn" id="helpClose" type="button" aria-label="Close">Close</button>
+          </div>
+          <div class="dlgBody">
+            <p>Your goal is to open all safe tiles without clicking a mine: left-click opens a tile (if it’s a mine you lose; otherwise you’ll see a number), and right-click places/removes a flag on a tile where you suspect a mine (flags help you avoid mistakes but aren’t strictly required to win); the number on an opened tile tells you how many mines are in the 8 neighboring tiles around it (including diagonals), and you can use that to deduce mine positions logically: if a tile shows N and it has exactly N unopened neighbors, then all of those unopened neighbors are mines and you should flag them; if a tile shows N and there are already N flags around it, then every other unopened neighbor is safe and can be opened; you can also compare adjacent numbers that “share” some of the same unopened neighbors (the difference between the numbers often means the extra mine(s) must be in the neighbors that belong only to the larger number), and edges/corners are usually easier because tiles there have fewer neighbors; place flags only when you’re logically sure, and if you’re not sure, open other guaranteed-safe moves first and come back later.</p>
+          </div>
+        </dialog>
       </section>
     </div>
   </div>
 
 <script>
 (() => {
-  const elGrid = document.getElementById('grid');
-  const elMinesTotal = document.getElementById('minesTotal');
-  const elFlagsUsed = document.getElementById('flagsUsed');
-  const elTime = document.getElementById('time');
-  const elState = document.getElementById('state');
+  const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const btnNew = document.getElementById('newBtn');
-  const btnEasy = document.getElementById('easyBtn');
-  const btnHard = document.getElementById('hardBtn');
+  const intro = document.getElementById('intro');
+  const wrap = document.getElementById('wrap');
+  const blast = document.getElementById('blast');
+  const flashScreen = document.getElementById('flashScreen');
 
-  let size = 10;
-  let mines = 14;
+  function rand(a,b){ return a + Math.random()*(b-a); }
 
-  let board = [];
-  let started = false;
-  let ended = false;
-  let revealedCount = 0;
-  let flagsUsed = 0;
-  let timer = 0;
-  let timerId = null;
-
-  const idx = (r,c) => r * size + c;
-  const inBounds = (r,c) => r>=0 && c>=0 && r<size && c<size;
-
-  function setCSSVars() {
-    document.documentElement.style.setProperty('--size', String(size));
-    document.documentElement.style.setProperty('--mines', String(mines));
-  }
-
-  function setState(text){ elState.textContent = text; }
-
-  function resetTimer(){
-    timer = 0;
-    elTime.textContent = '0';
-    if (timerId) clearInterval(timerId);
-    timerId = null;
-  }
-
-  function startTimer(){
-    if (timerId) return;
-    timerId = setInterval(() => {
-      timer += 1;
-      elTime.textContent = String(timer);
-    }, 1000);
-  }
-
-  function makeEmptyBoard(){
-    board = new Array(size * size).fill(null).map(() => ({
-      mine:false, open:false, flag:false, n:0
-    }));
-    revealedCount = 0;
-    flagsUsed = 0;
-    elFlagsUsed.textContent = '0';
-    elMinesTotal.textContent = String(mines);
-  }
-
-  function neighbors(r,c){
-    const res = [];
-    for (let dr=-1; dr<=1; dr++){
-      for (let dc=-1; dc<=1; dc++){
-        if (dr===0 && dc===0) continue;
-        const rr = r+dr, cc = c+dc;
-        if (inBounds(rr,cc)) res.push([rr,cc]);
-      }
-    }
-    return res;
-  }
-
-  function placeMines(firstR, firstC){
-    const forbidden = new Set();
-    forbidden.add(idx(firstR, firstC));
-    for (const [rr,cc] of neighbors(firstR, firstC)) forbidden.add(idx(rr,cc));
-
-    let placed = 0;
-    while (placed < mines){
-      const r = Math.floor(Math.random()*size);
-      const c = Math.floor(Math.random()*size);
-      const i = idx(r,c);
-      if (forbidden.has(i)) continue;
-      if (board[i].mine) continue;
-      board[i].mine = true;
-      placed++;
+  function introSequence(){
+    if (prefersReducedMotion){
+      intro.remove();
+      wrap.classList.add('ready');
+      bootGame();
+      return;
     }
 
-    for (let r=0; r<size; r++){
-      for (let c=0; c<size; c++){
-        const i = idx(r,c);
-        if (board[i].mine) continue;
-        let count = 0;
-        for (const [rr,cc] of neighbors(r,c)){
-          if (board[idx(rr,cc)].mine) count++;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+
+    const bombCount = Math.min(140, Math.max(70, Math.floor((W*H) / 16000)));
+    const bombs = [];
+
+    for (let i=0; i<bombCount; i++){
+      const b = document.createElement('div');
+      b.className = 'bomb';
+      b.style.setProperty('--x', rand(0, W) + 'px');
+      b.style.setProperty('--y', rand(0, H) + 'px');
+      b.style.animationDelay = (i * 6) + 'ms';
+      intro.appendChild(b);
+      bombs.push(b);
+    }
+
+    setTimeout(() => {
+      blast.classList.add('on');
+      intro.classList.add('shake');
+      flashScreen.classList.add('on');
+    }, 820);
+
+    setTimeout(() => {
+      intro.classList.add('fadeOut');
+    }, 1180);
+
+    setTimeout(() => {
+      intro.remove();
+      wrap.classList.add('ready');
+      bootGame();
+    }, 1600);
+  }
+
+  function bootGame(){
+    const $ = (id) => document.getElementById(id);
+
+    const elGrid = $('grid');
+    const elMinesTotal = $('minesTotal');
+    const elFlagsUsed = $('flagsUsed');
+    const elTime = $('time');
+    const elState = $('state');
+    const elStateDot = $('stateDot');
+    const elMode = $('mode');
+    const elToast = $('toast');
+
+    const btnNew = $('newBtn');
+    const btnHelp = $('helpBtn');
+
+    const dlgHelp = $('helpDialog');
+    const btnHelpClose = $('helpClose');
+
+    const GameState = Object.freeze({
+      ready: 'Ready',
+      playing: 'Playing',
+      win: 'Win',
+      boom: 'Boom'
+    });
+
+    let size = 10;
+    let mines = 14;
+
+    let board = [];
+    let started = false;
+    let ended = false;
+
+    let revealedCount = 0;
+    let flagsUsed = 0;
+
+    let timer = 0;
+    let timerId = null;
+
+    const idx = (r,c) => r * size + c;
+    const inBounds = (r,c) => r>=0 && c>=0 && r<size && c<size;
+
+    function setCSSVars(){
+      document.documentElement.style.setProperty('--size', String(size));
+      document.documentElement.style.setProperty('--mines', String(mines));
+    }
+
+    function toast(msg, ms=900){
+      elToast.textContent = msg;
+      elToast.classList.add('show');
+      window.clearTimeout(toast._t);
+      toast._t = window.setTimeout(() => elToast.classList.remove('show'), ms);
+    }
+
+    function setState(state){
+      elState.textContent = state;
+      elStateDot.classList.remove('playing','win','lose');
+      if (state === GameState.playing) elStateDot.classList.add('playing');
+      if (state === GameState.win) elStateDot.classList.add('win');
+      if (state === GameState.boom) elStateDot.classList.add('lose');
+    }
+
+    function resetTimer(){
+      timer = 0;
+      elTime.textContent = '0';
+      if (timerId) clearInterval(timerId);
+      timerId = null;
+    }
+
+    function startTimer(){
+      if (timerId) return;
+      timerId = setInterval(() => {
+        timer += 1;
+        elTime.textContent = String(timer);
+      }, 1000);
+    }
+
+    function makeEmptyBoard(){
+      board = new Array(size * size).fill(null).map(() => ({ mine:false, open:false, flag:false, n:0 }));
+      revealedCount = 0;
+      flagsUsed = 0;
+      elFlagsUsed.textContent = '0';
+      elMinesTotal.textContent = String(mines);
+    }
+
+    function neighbors(r,c){
+      const res = [];
+      for (let dr=-1; dr<=1; dr++){
+        for (let dc=-1; dc<=1; dc++){
+          if (dr===0 && dc===0) continue;
+          const rr = r+dr, cc = c+dc;
+          if (inBounds(rr,cc)) res.push([rr,cc]);
         }
-        board[i].n = count;
+      }
+      return res;
+    }
+
+    function placeMines(firstR, firstC){
+      const forbidden = new Set();
+      forbidden.add(idx(firstR, firstC));
+      for (const [rr,cc] of neighbors(firstR, firstC)) forbidden.add(idx(rr,cc));
+
+      let placed = 0;
+      while (placed < mines){
+        const r = (Math.random()*size) | 0;
+        const c = (Math.random()*size) | 0;
+        const i = idx(r,c);
+        if (forbidden.has(i)) continue;
+        if (board[i].mine) continue;
+        board[i].mine = true;
+        placed++;
+      }
+
+      for (let r=0; r<size; r++){
+        for (let c=0; c<size; c++){
+          const i = idx(r,c);
+          if (board[i].mine) continue;
+          let count = 0;
+          for (const [rr,cc] of neighbors(r,c)){
+            if (board[idx(rr,cc)].mine) count++;
+          }
+          board[i].n = count;
+        }
       }
     }
-  }
 
-  function render(){
-    elGrid.innerHTML = '';
-    for (let r=0; r<size; r++){
-      for (let c=0; c<size; c++){
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        cell.dataset.state = 'closed';
-
-        cell.addEventListener('click', (e) => { e.preventDefault(); onOpen(r,c); });
-        cell.addEventListener('contextmenu', (e) => { e.preventDefault(); onFlag(r,c); });
-
-        elGrid.appendChild(cell);
-      }
+    function rippleAt(cell, e){
+      if (prefersReducedMotion) return;
+      const rect = cell.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      r.style.setProperty('--rx', x + 'px');
+      r.style.setProperty('--ry', y + 'px');
+      cell.appendChild(r);
+      window.setTimeout(() => r.remove(), 480);
     }
-  }
 
-  function cellEl(r,c){ return elGrid.children[idx(r,c)]; }
+    function render(){
+      elGrid.innerHTML = '';
+      elGrid.classList.remove('shake');
 
-  function paintCell(r,c){
-    const i = idx(r,c);
-    const cell = cellEl(r,c);
-    const t = board[i];
+      const frag = document.createDocumentFragment();
+      for (let r=0; r<size; r++){
+        for (let c=0; c<size; c++){
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.state = 'closed';
+          cell.setAttribute('role','gridcell');
 
-    if (t.open){
-      if (t.mine){
-        cell.dataset.state = 'mine';
-        cell.textContent = '';
-      } else {
-        cell.dataset.state = 'open';
-        if (t.n === 0){
+          cell.addEventListener('click', (e) => {
+            e.preventDefault();
+            rippleAt(cell, e);
+            onOpen(r,c);
+          });
+
+          cell.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            rippleAt(cell, e);
+            onFlag(r,c);
+          });
+
+          cell.addEventListener('auxclick', (e) => {
+            if (e.button === 1){
+              e.preventDefault();
+              rippleAt(cell, e);
+              onChord(r,c);
+            }
+          });
+
+          frag.appendChild(cell);
+        }
+      }
+      elGrid.appendChild(frag);
+
+      elGrid.onmousemove = (e) => {
+        const target = e.target.closest('.cell');
+        if (!target) return;
+        const i = Array.prototype.indexOf.call(elGrid.children, target);
+        if (i < 0) return;
+
+        const r = (i / size) | 0;
+        const c = i % size;
+
+        clearHighlights();
+        const t = board[i];
+        if (!t || !t.open || t.mine || t.n === 0) return;
+        highlightNeighbors(r,c);
+      };
+
+      elGrid.onmouseleave = () => clearHighlights();
+    }
+
+    function cellEl(r,c){ return elGrid.children[idx(r,c)]; }
+
+    function paintCell(r,c){
+      const t = board[idx(r,c)];
+      const cell = cellEl(r,c);
+
+      cell.classList.remove('n1','n2','n3','n4','n5','n6','n7','n8');
+
+      if (t.open){
+        if (t.mine){
+          cell.dataset.state = 'mine';
           cell.textContent = '';
         } else {
-          cell.textContent = String(t.n);
-          cell.classList.remove('n1','n2','n3','n4','n5','n6','n7','n8');
-          cell.classList.add('n'+t.n);
+          cell.dataset.state = 'open';
+          if (t.n === 0){
+            cell.textContent = '';
+          } else {
+            cell.textContent = String(t.n);
+            cell.classList.add('n'+t.n);
+          }
         }
+        return;
       }
-      return;
-    }
 
-    if (t.flag){
-      cell.dataset.state = 'flag';
-      cell.textContent = '';
-    } else {
-      cell.dataset.state = 'closed';
-      cell.textContent = '';
-    }
-  }
-
-  function floodOpen(r,c){
-    const stack = [[r,c]];
-    const seen = new Set();
-
-    while(stack.length){
-      const [rr,cc] = stack.pop();
-      const key = rr+','+cc;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const i = idx(rr,cc);
-      const t = board[i];
-      if (t.open || t.flag) continue;
-      t.open = true;
-      revealedCount++;
-      paintCell(rr,cc);
-
-      if (t.n === 0){
-        for (const [nr,nc] of neighbors(rr,cc)){
-          const ni = idx(nr,nc);
-          if (!board[ni].open && !board[ni].mine) stack.push([nr,nc]);
-        }
+      if (t.flag){
+        cell.dataset.state = 'flag';
+        cell.textContent = '';
+      } else {
+        cell.dataset.state = 'closed';
+        cell.textContent = '';
       }
     }
-  }
 
-  function onOpen(r,c){
-    if (ended) return;
-
-    const i = idx(r,c);
-    const t = board[i];
-    if (t.open || t.flag) return;
-
-    if (!started){
-      started = true;
-      setState('Playing');
-      placeMines(r,c);
-      startTimer();
+    function clearHighlights(){
+      for (let i=0; i<elGrid.children.length; i++){
+        elGrid.children[i].classList.remove('hl','safe');
+      }
     }
 
-    if (t.mine){
-      t.open = true;
+    function highlightNeighbors(r,c){
+      for (const [rr,cc] of neighbors(r,c)){
+        const t = board[idx(rr,cc)];
+        const el = cellEl(rr,cc);
+        el.classList.add('hl');
+        if (!t.open && !t.flag) el.classList.add('safe');
+      }
+    }
+
+    function floodOpen(r,c){
+      const stack = [[r,c]];
+      const seen = new Set();
+
+      while (stack.length){
+        const [rr,cc] = stack.pop();
+        const key = rr + ',' + cc;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const t = board[idx(rr,cc)];
+        if (t.open || t.flag) continue;
+
+        t.open = true;
+        revealedCount++;
+        paintCell(rr,cc);
+
+        if (t.n === 0){
+          for (const [nr,nc] of neighbors(rr,cc)){
+            const nt = board[idx(nr,nc)];
+            if (!nt.open && !nt.mine) stack.push([nr,nc]);
+          }
+        }
+      }
+    }
+
+    function onOpen(r,c){
+      if (ended) return;
+
+      const t = board[idx(r,c)];
+      if (t.open || t.flag) return;
+
+      if (!started){
+        started = true;
+        setState(GameState.playing);
+        placeMines(r,c);
+        startTimer();
+      }
+
+      if (t.mine){
+        t.open = true;
+        paintCell(r,c);
+        lose();
+        return;
+      }
+
+      floodOpen(r,c);
+      checkWin();
+    }
+
+    function onFlag(r,c){
+      if (ended) return;
+
+      const t = board[idx(r,c)];
+      if (t.open) return;
+
+      t.flag = !t.flag;
+      flagsUsed += t.flag ? 1 : -1;
+      elFlagsUsed.textContent = String(flagsUsed);
       paintCell(r,c);
-      lose();
-      return;
+      checkWin();
     }
 
-    floodOpen(r,c);
-    checkWin();
-  }
+    function onChord(r,c){
+      if (ended) return;
 
-  function onFlag(r,c){
-    if (ended) return;
-    const i = idx(r,c);
-    const t = board[i];
-    if (t.open) return;
+      const t = board[idx(r,c)];
+      if (!t.open || t.mine || t.n === 0) return;
 
-    t.flag = !t.flag;
-    flagsUsed += t.flag ? 1 : -1;
-    elFlagsUsed.textContent = String(flagsUsed);
-    paintCell(r,c);
-    checkWin();
-  }
+      let f = 0;
+      const neigh = neighbors(r,c);
+      for (const [rr,cc] of neigh){
+        if (board[idx(rr,cc)].flag) f++;
+      }
+      if (f !== t.n){
+        toast('Not enough flags', 700);
+        return;
+      }
 
-  function revealAllMines(){
-    for (let r=0; r<size; r++){
-      for (let c=0; c<size; c++){
-        const i = idx(r,c);
-        if (board[i].mine){
-          board[i].open = true;
-          paintCell(r,c);
+      const center = cellEl(r,c);
+      if (!prefersReducedMotion){
+        center.classList.add('flash');
+        window.setTimeout(() => center.classList.remove('flash'), 240);
+      }
+
+      for (const [rr,cc] of neigh){
+        const nt = board[idx(rr,cc)];
+        if (!nt.flag && !nt.open){
+          onOpen(rr,cc);
         }
       }
     }
-  }
 
-  function win(){
-    ended = true;
-    setState('Win');
-    if (timerId) clearInterval(timerId);
-  }
-
-  function lose(){
-    ended = true;
-    setState('Boom');
-    revealAllMines();
-    if (timerId) clearInterval(timerId);
-  }
-
-  function checkWin(){
-    const safeCells = size*size - mines;
-    if (revealedCount === safeCells && !ended) win();
-  }
-
-  function newGame(newSize=size, newMines=mines){
-    size = newSize;
-    mines = newMines;
-    setCSSVars();
-
-    started = false;
-    ended = false;
-    resetTimer();
-    setState('Ready');
-
-    makeEmptyBoard();
-    render();
-  }
-
-  btnNew.addEventListener('click', () => newGame(size, mines));
-  btnEasy.addEventListener('click', () => newGame(10, 14));
-  btnHard.addEventListener('click', () => newGame(14, 32));
-
-  window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space'){
-      e.preventDefault();
-      newGame(size, mines);
+    function revealAllMines(){
+      for (let r=0; r<size; r++){
+        for (let c=0; c<size; c++){
+          const t = board[idx(r,c)];
+          if (t.mine){
+            t.open = true;
+            paintCell(r,c);
+          }
+        }
+      }
     }
-  });
 
-  newGame(10, 14);
+    function win(){
+      ended = true;
+      setState(GameState.win);
+      if (timerId) clearInterval(timerId);
+
+      if (!prefersReducedMotion && typeof window.confetti === 'function'){
+        window.confetti({
+          particleCount: 110,
+          spread: 70,
+          startVelocity: 38,
+          gravity: 0.95,
+          ticks: 220,
+          colors: ['#ff5da2','#7b6cff','#ff8fb1','#ffffff'],
+          origin: { x: 0.5, y: 0.65 },
+          disableForReducedMotion: true
+        });
+      }
+    }
+
+    function lose(){
+      ended = true;
+      setState(GameState.boom);
+      revealAllMines();
+      if (timerId) clearInterval(timerId);
+      toast('Boom', 900);
+
+      if (!prefersReducedMotion){
+        elGrid.classList.add('shake');
+        window.setTimeout(() => elGrid.classList.remove('shake'), 460);
+      }
+    }
+
+    function checkWin(){
+      const safe = size*size - mines;
+      if (revealedCount === safe && !ended) win();
+    }
+
+    function parseMode(value){
+      const [s1,s2,m] = value.split('x').map(Number);
+      return { newSize: s1, newMines: m };
+    }
+
+    function newGame(newSize=size, newMines=mines){
+      size = newSize;
+      mines = newMines;
+      setCSSVars();
+
+      started = false;
+      ended = false;
+      resetTimer();
+      setState(GameState.ready);
+
+      makeEmptyBoard();
+      render();
+    }
+
+    btnHelp.addEventListener('click', () => {
+      if (typeof dlgHelp.showModal === 'function') dlgHelp.showModal();
+      else toast('Dialog not supported', 1200);
+    });
+    btnHelpClose.addEventListener('click', () => dlgHelp.close());
+    dlgHelp.addEventListener('click', (e) => {
+      const rect = dlgHelp.getBoundingClientRect();
+      const inDialog =
+        e.clientX >= rect.left && e.clientX <= rect.right &&
+        e.clientY >= rect.top && e.clientY <= rect.bottom;
+      if (!inDialog) dlgHelp.close();
+    });
+
+    btnNew.addEventListener('click', () => newGame(size, mines));
+    elMode.addEventListener('change', () => {
+      const { newSize, newMines } = parseMode(elMode.value);
+      newGame(newSize, newMines);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space'){
+        e.preventDefault();
+        newGame(size, mines);
+      }
+    });
+
+    setCSSVars();
+    newGame(10, 14);
+  }
+
+  introSequence();
 })();
 </script>
 </body>
